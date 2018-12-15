@@ -21,6 +21,7 @@
 
 class BLERemoteService;
 class BLERemoteDescriptor;
+class BLERemoteCharacteristicCallbacks;
 typedef void (*notify_callback)(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify);
 
 /**
@@ -45,7 +46,7 @@ public:
 	uint8_t     readUInt8();
 	uint16_t    readUInt16();
 	uint32_t    readUInt32();
-	void        registerForNotify(notify_callback _callback, bool notifications = true);
+	void        setNotifyCallbacks(BLERemoteCharacteristicCallbacks* callbacks);
 	void        writeValue(uint8_t* data, size_t length, bool response = false);
 	void        writeValue(std::string newValue, bool response = false);
 	void        writeValue(uint8_t newValue, bool response = false);
@@ -70,6 +71,7 @@ private:
 	esp_gatt_char_prop_t m_charProp;
 	uint16_t             m_handle;
 	BLERemoteService*    m_pRemoteService;
+	BLERemoteCharacteristicCallbacks* m_callbacks;
 	FreeRTOS::Semaphore  m_semaphoreReadCharEvt      = FreeRTOS::Semaphore("ReadCharEvt");
 	FreeRTOS::Semaphore  m_semaphoreRegForNotifyEvt  = FreeRTOS::Semaphore("RegForNotifyEvt");
 	FreeRTOS::Semaphore  m_semaphoreWriteCharEvt     = FreeRTOS::Semaphore("WriteCharEvt");
@@ -80,5 +82,22 @@ private:
 	// We maintain a map of descriptors owned by this characteristic keyed by a string representation of the UUID.
 	std::map<std::string, BLERemoteDescriptor*> m_descriptorMap;
 }; // BLERemoteCharacteristic
+
+/**
+ * @brief A callback handler for callbacks associated device scanning.
+ *
+ * When we are performing a scan as a %BLE client, we may wish to know when a new device that is advertising
+ * has been found.  This class can be sub-classed and registered such that when a scan is performed and
+ * a new advertised device has been found, we will be called back to be notified.
+ */
+class BLERemoteCharacteristicCallbacks {
+public:
+	virtual ~BLERemoteCharacteristicCallbacks() {}
+	/**
+	 * @brief Called when data
+	 *
+	 */
+	virtual void onNotify(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) = 0;
+};
 #endif /* CONFIG_BT_ENABLED */
 #endif /* COMPONENTS_CPP_UTILS_BLEREMOTECHARACTERISTIC_H_ */
